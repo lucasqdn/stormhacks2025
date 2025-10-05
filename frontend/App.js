@@ -1,20 +1,13 @@
 import React, { useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import CameraScreen from './screens/CameraScreen';
-
-// Simple context to send UI actions (scan, repeat, settings, help) to the CameraScreen
-export const UIActionsContext = React.createContext({
-  onScan: () => {},
-  onRepeat: () => {},
-  onSettings: () => {},
-  onHelp: () => {},
-});
+import UIActionsContext from './contexts/UIActionsContext';
 
 export default function App() {
   const actionsRef = useRef({});
 
   return (
-    <UIActionsContext.Provider value={actionsRef.current}>
+  <UIActionsContext.Provider value={actionsRef.current}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>SightMate</Text>

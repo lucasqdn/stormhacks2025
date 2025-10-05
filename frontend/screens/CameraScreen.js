@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState, useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
-import { UIActionsContext } from '../App';
-import { Camera } from 'expo-camera';
-import * as Haptics from 'react-native-haptic-feedback';
+import UIActionsContext from '../contexts/UIActionsContext';
+import { Camera, CameraType } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
 import api from '../services/api';
 import tts from '../utils/tts';
 
@@ -35,7 +35,7 @@ export default function CameraScreen() {
     try {
       setIsProcessing(true);
       tts.speak('Capturing now.');
-      Haptics.trigger('impactLight');
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, base64: true, skipProcessing: true });
       tts.speak('Analyzing, please wait.');
@@ -125,7 +125,7 @@ export default function CameraScreen() {
       </View>
       <Camera
         style={styles.camera}
-        type={Camera.Constants.Type.back}
+        type={CameraType.back}
         ref={cameraRef}
         ratio="4:3"
         accessible={true}
@@ -154,7 +154,7 @@ export default function CameraScreen() {
             onPress={() => {
               if (lastResult) {
                 tts.speak(lastResult);
-                Haptics.trigger('impactLight');
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               } else {
                 tts.speak('No previous result to repeat');
               }
