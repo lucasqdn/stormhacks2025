@@ -216,8 +216,9 @@ export default function CameraScreen() {
                 <View style={{ height: 10, overflow: 'hidden', borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.08)', marginTop: 8 }}>
                   <Animated.View
                     style={{
-                      position: 'absolute', left: shimmerX, top: 0, bottom: 0, width: 120,
-                      backgroundColor: 'rgba(255,255,255,0.2)', transform: [{ skewX: '20deg' }]
+                      position: 'absolute', top: 0, bottom: 0, width: 120,
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      transform: [{ translateX: shimmerX }, { skewX: '20deg' }]
                     }}
                   />
                 </View>
