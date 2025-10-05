@@ -1,7 +1,15 @@
 from googletrans import Translator
+from yolov8 import object_detection
 
 translator = Translator()
 
-print(translator.translate("bus", dest="ko").text)  # Korean
-print(translator.translate("car", dest="vi").text)  # Vietnamese
-print(translator.translate("swivel chair", dest="vi").text)  # Simplified Chinese
+languages = {
+    'english': 'en',
+    'korean': 'ko',
+    'spanish': 'es',
+    'french': 'fr',
+    'german': 'de',
+    'vietnamese': 'vi',
+}
+
+print(translator.translate(object_detection(), dest=languages.get('korean')).text)
