@@ -1,49 +1,58 @@
-import axios from 'axios';
+import * as ExpoSpeech from 'expo-speech';
 import { Audio } from 'expo-av';
-import { Buffer } from 'buffer';
 
-const ELEVEN_LABS_API_KEY = 'sk_57a1fae55d1d2869126a250c3daeac4a3dcc45ca3f7c21a6'; // Replace with your API key
-const ELEVEN_LABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
-const VOICE_ID = 'pqHfZKP75CvOlQylNhV4'; // Replace with the desired voice ID from ElevenLabs
+let currentSound = null;
 
 async function speak(text, options = {}) {
   if (!text) return;
-
   try {
-    // Make a request to ElevenLabs API
-    const response = await axios.post(
-      `${ELEVEN_LABS_API_URL}/${VOICE_ID}`,
-      {
-        text,
-        voice_settings: {
-          stability: options.stability || 0.5,
-          similarity_boost: options.similarityBoost || 0.5,
-        },
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'xi-api-key': ELEVEN_LABS_API_KEY,
-        },
-        responseType: 'arraybuffer', // To handle audio data
-      }
-    );
-
-    // Load and play the audio using Expo's Audio API
-    const sound = new Audio.Sound();
-    await sound.loadAsync({ uri: `data:audio/mpeg;base64,${Buffer.from(response.data).toString('base64')}` });
-    await sound.playAsync();
+    if (ExpoSpeech && typeof ExpoSpeech.speak === 'function') {
+      ExpoSpeech.speak(text, options);
+    } else {
+      console.log('TTS:', text);
+    }
   } catch (error) {
-    console.error('Error with ElevenLabs TTS:', error);
+    console.warn('TTS speak error:', error?.message || String(error));
   }
 }
 
-function stop() {
-  // Expo's Audio API does not have a direct stop method for ongoing playback,
-  // but you can unload the sound to stop it.
-  Audio.Sound.createAsync().then(({ sound }) => {
-    sound.unloadAsync();
-  });
+async function playBase64(base64Audio, mimeType = 'audio/mpeg') {
+  if (!base64Audio) return;
+  try {
+    await stop();
+    const source = { uri: `data:${mimeType};base64,${base64Audio}` };
+    const { sound } = await Audio.Sound.createAsync(source);
+    currentSound = sound;
+    await sound.playAsync();
+  } catch (error) {
+    console.warn('playBase64 error:', error?.message || String(error));
+  }
+}
+
+async function playUrl(url) {
+  if (!url) return;
+  try {
+    await stop();
+    const { sound } = await Audio.Sound.createAsync({ uri: url });
+    currentSound = sound;
+    await sound.playAsync();
+  } catch (error) {
+    console.warn('playUrl error:', error?.message || String(error));
+  }
+}
+
+async function stop() {
+  try {
+    if (currentSound) {
+      await currentSound.unloadAsync();
+      currentSound = null;
+    }
+    if (ExpoSpeech && typeof ExpoSpeech.stop === 'function') {
+      ExpoSpeech.stop();
+    }
+  } catch (error) {
+    console.warn('TTS stop error:', error?.message || String(error));
+  }
 }
 
 async function playBase64(base64Audio) {

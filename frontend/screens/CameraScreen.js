@@ -20,7 +20,8 @@ export default function CameraScreen() {
   const [lastResult, setLastResult] = useState(null); // {label, translation, audio_url}
   const [capturedUri, setCapturedUri] = useState(null);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [endpointInput, setEndpointInput] = useState(api.getEndpoint());
+  // Let Settings control the /process-image endpoint by default
+  const [endpointInput, setEndpointInput] = useState(api.getProcessEndpoint ? api.getProcessEndpoint() : api.getEndpoint());
   const [targetLang, setTargetLang] = useState('ko');
 
   // Animations
@@ -97,15 +98,15 @@ export default function CameraScreen() {
       tts.speak('Analyzing, please wait.');
       startShimmer();
 
-      const payload = { image_base64: photo?.base64 || '', target_lang: targetLang };
-      const resp = await api.identifyObject(payload);
+  const payload = { image: photo?.base64 || '', src_lang: 'en', dest_lang: targetLang };
+  const resp = await (api.processImage ? api.processImage(payload) : api.identifyObject(payload));
 
       stopShimmer();
 
       if (resp) {
         const result = {
-          label: resp.word || resp.label || '',
-          translation: resp.translation || '',
+          label: resp.word || resp.label || resp.src_lang_description || '',
+          translation: resp.translation || resp.dest_lang_description || '',
           audio_url: resp.audio_url || '',
         };
         setLastResult(result);
@@ -127,7 +128,7 @@ export default function CameraScreen() {
   };
 
   const openSettings = () => {
-    setEndpointInput(api.getEndpoint());
+  setEndpointInput(api.getProcessEndpoint ? api.getProcessEndpoint() : api.getEndpoint());
     setSettingsVisible(true);
   };
 
@@ -135,7 +136,7 @@ export default function CameraScreen() {
     try {
       const url = new URL(endpointInput);
       if (!/^https?:$/.test(url.protocol)) throw new Error('Only http or https is allowed.');
-      api.setEndpoint(endpointInput);
+  if (api.setProcessEndpoint) api.setProcessEndpoint(endpointInput); else api.setEndpoint(endpointInput);
       setSettingsVisible(false);
       tts.speak('Settings saved.');
     } catch (e) {
@@ -292,7 +293,7 @@ export default function CameraScreen() {
               placeholderTextColor="#aaa"
             />
 
-            <Text style={styles.modalLabel}>ML Endpoint URL</Text>
+            <Text style={styles.modalLabel}>Process Endpoint URL (/process-image)</Text>
             <TextInput
               style={styles.input}
               value={endpointInput}

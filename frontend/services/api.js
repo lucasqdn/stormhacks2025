@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-// Default ML endpoint (can be overridden at runtime)
-// Use your machine IP so devices can reach the backend. Change if different.
-let ML_ENDPOINT = 'http://172.16.164.208:8000/identify';
-let PROCESS_ENDPOINT = 'http://172.16.164.208:8000/process-image';
+// Default endpoints (can be overridden at runtime in Settings)
+// Point to Render deployment by default for on-device testing
+let ML_ENDPOINT = 'https://stormhacks2025.onrender.com/identify';
+let PROCESS_ENDPOINT = 'https://stormhacks2025.onrender.com/process-image';
 // let BARCODE_ENDPOINT = 'http://localhost:5000/barcode';
 
 const client = axios.create({
@@ -25,8 +25,8 @@ async function identifyImage(base64) {
   }
 }
 
-// Language-learning endpoint: expects payload { image_base64, target_lang }
-// and returns { word, translation, audio_url }
+// Language-learning endpoint (legacy): expects payload { image_base64, target_lang }
+// and returns { word, translation, audio_url } (Only if you implement /identify on backend)
 async function identifyObject(payload) {
   try {
     const resp = await client.post(ML_ENDPOINT, payload);
