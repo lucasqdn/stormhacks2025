@@ -31,3 +31,5 @@ yarn-error.log*
 
 # Generated TypeScript build info
 *.tsbuildinfo
+
+.venv
