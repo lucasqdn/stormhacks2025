@@ -2,6 +2,7 @@ import axios from 'axios';
 
 // Default ML endpoint (can be overridden at runtime)
 let ML_ENDPOINT = 'http://localhost:5000/identify';
+let BARCODE_ENDPOINT = 'http://localhost:5000/barcode';
 
 const client = axios.create({
   timeout: 15000,
@@ -22,6 +23,20 @@ async function identifyImage(base64) {
   }
 }
 
+async function lookupBarcode(code) {
+  try {
+    const resp = await client.get(`${BARCODE_ENDPOINT}`, { params: { code } });
+    // Expected response: { label: '...' } or { product: '...' }
+    if (resp && resp.data) {
+      return resp.data.label || resp.data.product || resp.data.name || null;
+    }
+    return null;
+  } catch (err) {
+    console.warn('lookupBarcode error', err.message || err.toString());
+    throw err;
+  }
+}
+
 function setEndpoint(url) {
   ML_ENDPOINT = url;
 }
@@ -29,5 +44,12 @@ function setEndpoint(url) {
 function getEndpoint() {
   return ML_ENDPOINT;
 }
+function setBarcodeEndpoint(url) {
+  BARCODE_ENDPOINT = url;
+}
 
-export default { identifyImage, setEndpoint, getEndpoint };
+function getBarcodeEndpoint() {
+  return BARCODE_ENDPOINT;
+}
+
+export default { identifyImage, lookupBarcode, setEndpoint, getEndpoint, setBarcodeEndpoint, getBarcodeEndpoint };

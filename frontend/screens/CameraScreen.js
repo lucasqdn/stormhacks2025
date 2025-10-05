@@ -10,6 +10,7 @@ export default function CameraScreen({ onClose }) {
   const cameraRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scanMode, setScanMode] = useState(null); // 'barcode' | null
   const [lastResult, setLastResult] = useState('');
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [endpointInput, setEndpointInput] = useState(api.getEndpoint());
@@ -28,29 +29,41 @@ export default function CameraScreen({ onClose }) {
   }, [permission]);
 
   const handleCapture = async () => {
-    if (!cameraRef.current || isProcessing) return;
+    // Toggle barcode scanning on first press; cancel on second press
+    if (!scanMode) {
+      setScanMode('barcode');
+      tts.speak('Point the barcode at the camera');
+      return;
+    }
+    if (scanMode === 'barcode') {
+      setScanMode(null);
+      tts.speak('Scan cancelled');
+      return;
+    }
+  };
+
+  const onBarCodeScanned = async ({ type, data }) => {
+    if (isProcessing) return;
+    // Log the raw barcode data and type to the terminal (Metro/VS Code)
+    console.log('Barcode scanned:', { type, data });
+    setIsProcessing(true);
     try {
-      setIsProcessing(true);
-      tts.speak('Capturing now.');
-  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, base64: true, skipProcessing: true });
-      tts.speak('Analyzing, please wait.');
-
-      const label = await api.identifyImage(photo.base64);
-
-      if (label) {
-        setLastResult(label);
-        tts.speak(`Product: ${label}`);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      tts.speak('Barcode detected. Looking up product.');
+      const result = await api.lookupBarcode(String(data));
+      if (result) {
+        setLastResult(result);
+        tts.speak(`Product: ${result}`);
       } else {
-        tts.speak('Could not identify the product. Try again.');
+        tts.speak('No product found for this code.');
       }
     } catch (err) {
-      console.log('capture error', err.message || err);
-      tts.speak('There was an error. Check network or try again.');
+      console.log('barcode error', err.message || err);
+      tts.speak('There was an error looking up this code.');
       Alert.alert('Error', err.message || String(err));
     } finally {
       setIsProcessing(false);
+      setScanMode(null);
     }
   };
 
@@ -137,6 +150,8 @@ export default function CameraScreen({ onClose }) {
         onError={(e) => {
           console.warn('Camera error:', e?.nativeEvent || e);
         }}
+        onBarcodeScanned={scanMode === 'barcode' ? onBarCodeScanned : undefined}
+        barcodeScannerSettings={scanMode === 'barcode' ? { barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'qr'] } : undefined}
       />
 
       <View style={styles.controls}>
@@ -148,8 +163,18 @@ export default function CameraScreen({ onClose }) {
           accessibilityRole="button"
           accessibilityLabel="Capture photo"
         >
-          {isProcessing ? <ActivityIndicator color="#fff" /> : <Text style={styles.captureText}>Scan</Text>}
+          {isProcessing ? (
+            <ActivityIndicator color="#fff" />
+          ) : scanMode === 'barcode' ? (
+            <Text style={styles.captureText}>Cancel</Text>
+          ) : (
+            <Text style={styles.captureText}>Scan</Text>
+          )}
         </TouchableOpacity>
+
+        {scanMode === 'barcode' && (
+          <Text style={{ color: '#9fd', marginTop: 8 }}>Scanning... align the barcode within the frame</Text>
+        )}
 
         <View style={styles.resultRow}>
           <View style={styles.resultBox} accessible={true} accessibilityLabel={`Last result: ${lastResult}`}>
