@@ -19,6 +19,18 @@ export default function CameraScreen() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [endpointInput, setEndpointInput] = useState(api.getEndpoint());
   const [targetLang, setTargetLang] = useState('ko'); // <- language to request from backend
+  const [langPickerVisible, setLangPickerVisible] = useState(false);
+
+  const LANGUAGES = [
+    { code: 'en', label: 'English' },
+    { code: 'ko', label: 'Korean' },
+    { code: 'es', label: 'Spanish' },
+    { code: 'fr', label: 'French' },
+    { code: 'de', label: 'German' },
+    { code: 'ch', label: 'Chinese (Simplified)' },
+    { code: 'ja', label: 'Japanese' },
+    { code: 'pt', label: 'Portuguese' },
+  ];
 
   useEffect(() => {
     if (permission && permission.status === 'undetermined') requestPermission();
@@ -42,34 +54,26 @@ export default function CameraScreen() {
 
       tts.speak('Analyzing, please wait.');
 
-      // Build JSON payload for Python backend
+      // Build JSON payload for Python backend /process-image
       const payload = {
-        image_base64: photo?.base64 || '',
-        target_lang: targetLang, // e.g. 'ko', 'es', 'fr'
+        image: photo?.base64 || '',
+        src_lang: 'en',
+        dest_lang: targetLang, // e.g. 'ko', 'es', 'fr'
       };
 
-      // Expect backend to return: { word, translation, audio_url }
-      const resp = await api.identifyObject(payload);
+      // The backend returns { src_lang_description, dest_lang_description }
+      const resp = await api.processImage(payload);
 
       if (resp) {
         const resultObj = {
-          label: resp.word || resp.label || '',
-          translation: resp.translation || '',
-          audio_url: resp.audio_url || '',
+          label: resp.src_lang_description || '',
+          translation: resp.dest_lang_description || '',
         };
         setLastResult(resultObj);
 
-        // Speak and/or auto-play
         const spoken = resultObj.translation || resultObj.label || 'identified';
+        // Speak using client-side TTS (Expo Speech) — no backend changes required
         tts.speak(spoken);
-        if (resultObj.audio_url) {
-          try {
-            const { sound } = await Audio.Sound.createAsync({ uri: resultObj.audio_url });
-            await sound.playAsync();
-          } catch (e) {
-            console.warn('autoplay failed', e);
-          }
-        }
       } else {
         tts.speak('Could not identify the object. Try again.');
       }
@@ -196,7 +200,7 @@ export default function CameraScreen() {
           accessibilityLabel="Capture image"
           style={[styles.shutterButton, isProcessing && { opacity: 0.7 }]}
         >
-          {isProcessing && <ActivityIndicator color="#000" />}
+          {isProcessing && <ActivityIndicator color={theme.colors.primary} />}
         </TouchableOpacity>
       </View>
 
@@ -205,15 +209,31 @@ export default function CameraScreen() {
         <View style={styles.modalCenter}>
           <BlurView intensity={50} tint={Platform.OS === 'ios' ? 'systemThinMaterialDark' : 'dark'} style={styles.modalCard}>
             <Text style={styles.modalTitle}>Settings</Text>
-            <Text style={styles.modalLabel}>Target Language (e.g., ko, es, fr)</Text>
-            <TextInput
-              style={styles.input}
-              value={targetLang}
-              onChangeText={setTargetLang}
-              autoCapitalize="none"
-              placeholder="ko"
-              placeholderTextColor="#aaa"
-            />
+            <Text style={styles.modalLabel}>Target Language</Text>
+            <TouchableOpacity
+              style={[styles.input, styles.langSelect]}
+              onPress={() => setLangPickerVisible(!langPickerVisible)}
+              accessibilityRole="button"
+              accessibilityLabel="Select target language"
+            >
+              <Text style={{ color: theme.colors.text }}>{LANGUAGES.find(l => l.code === targetLang)?.label || targetLang}</Text>
+            </TouchableOpacity>
+            {langPickerVisible && (
+              <View style={styles.langList}>
+                {LANGUAGES.map((l) => (
+                  <TouchableOpacity
+                    key={l.code}
+                    style={styles.langItem}
+                    onPress={() => { setTargetLang(l.code); setLangPickerVisible(false); }}
+                  >
+                    <Text style={styles.langItemText}>{l.label} ({l.code})</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={styles.langItem} onPress={() => { setLangPickerVisible(false); }}>
+                  <Text style={[styles.langItemText, { opacity: 0.8 }]}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             <Text style={styles.modalLabel}>ML Endpoint URL</Text>
             <TextInput
               style={styles.input}
@@ -263,5 +283,9 @@ const styles = StyleSheet.create({
   modalTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 8 },
   modalLabel: { color: '#ddd', marginTop: 10 },
   input: { backgroundColor: 'rgba(255,255,255,0.12)', color: '#fff', padding: 10, marginTop: 6, borderRadius: 10 },
+  langSelect: { justifyContent: 'center' },
+  langList: { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 6 },
+  langItem: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6 },
+  langItemText: { color: '#fff' },
   modalButtonsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14 },
 });
