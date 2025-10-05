@@ -3,7 +3,16 @@ from fastapi.responses import JSONResponse
 from pipeline import analyze_image
 from utils import load_json
 
+
 app = FastAPI(title="GuideScan CV Service", version="0.1.0")
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # hackathon, ship it
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 CATALOG = load_json("catalog.json")
 MED_SAFETY = load_json("med_safety.json")
