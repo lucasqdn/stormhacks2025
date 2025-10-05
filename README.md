@@ -1,4 +1,4 @@
-# stormhacks2025
+# EyeLingo
 
 Camera-powered language learning app built at StormHacks 2025. The app uses your phone camera to detect everyday objects with YOLOv8, translates the label into your target language, and speaks it aloud. It’s split into an Expo React Native frontend and a FastAPI backend with Ultralytics YOLO and googletrans.
 
@@ -11,7 +11,7 @@ Camera-powered language learning app built at StormHacks 2025. The app uses your
 
 ## Why we built it
 
-- Learning sticks better when it’s tied to your surroundings—turn any object into a micro lesson
+- Learning sticks better when it’s tied to your surroundings. Turn any object into a micro lesson
 - Reduce friction: one tap to detect, translate, and hear pronunciation—no typing or searching
 - Explore a practical full-stack ML pipeline for mobile: camera → backend model → translation → TTS feedback
 - Built at StormHacks 2025 to showcase a polished, accessible UI paired with a lightweight, CPU-only backend deploy
@@ -19,7 +19,7 @@ Camera-powered language learning app built at StormHacks 2025. The app uses your
 ## What you get
 
 - Full-screen camera with a clean, “liquid glass” UI and white shutter button
-- One-tap capture → object detected on the backend → translated text returned
+- One-tap capture -> object detected on the backend -> translated text returned
 - Text-to-speech playback (Expo Speech) for quick pronunciation
 - In-app settings to change the target language and API endpoint (e.g., switch between local and cloud)
 
