@@ -1,0 +1,33 @@
+# Root .gitignore for the project
+# Ignore node modules and build artifacts
+node_modules/
+
+# Expo local state
+.expo/
+
+# Expo web build
+web-build/
+dist/
+
+# macOS
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env
+.env.*
+
+# iOS / Android
+/ios/
+/android/
+
+# Editor directories
+.vscode/
+.idea/
+
+# Generated TypeScript build info
+*.tsbuildinfo

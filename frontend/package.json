@@ -22,4 +22,12 @@
     "react-native-web": "^0.21.0"
   },
   "private": true
+  ,"expo":{
+    "doctor":{
+      "reactNativeDirectoryCheck":{
+        "exclude":["react-native-tts","react-native-voice"],
+        "listUnknownPackages":false
+      }
+    }
+  }
 }
