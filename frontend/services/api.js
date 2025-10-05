@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// TODO: replace with your real ML service URL
-const ML_ENDPOINT = 'http://localhost:5000/identify';
+// Default ML endpoint (can be overridden at runtime)
+let ML_ENDPOINT = 'http://localhost:5000/identify';
 
 const client = axios.create({
   timeout: 15000,
@@ -22,4 +22,12 @@ async function identifyImage(base64) {
   }
 }
 
-export default { identifyImage };
+function setEndpoint(url) {
+  ML_ENDPOINT = url;
+}
+
+function getEndpoint() {
+  return ML_ENDPOINT;
+}
+
+export default { identifyImage, setEndpoint, getEndpoint };

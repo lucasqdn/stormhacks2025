@@ -1,25 +1,40 @@
 import { Platform } from 'react-native';
-let TtsLib = null;
+let expoSpeech = null;
+let rnTts = null;
+
 try {
-  // react-native-tts is listed in package.json
-  TtsLib = require('react-native-tts');
+  expoSpeech = require('expo-speech');
 } catch (e) {
-  TtsLib = null;
+  expoSpeech = null;
 }
 
-function speak(text) {
+try {
+  rnTts = require('react-native-tts');
+} catch (e) {
+  rnTts = null;
+}
+
+function speak(text, options = {}) {
   if (!text) return;
-  if (TtsLib && TtsLib.speak) {
-    TtsLib.speak(text);
-  } else {
-    // Fallback: no-op or console
-    console.log('TTS:', text);
+  if (expoSpeech && expoSpeech.speak) {
+    expoSpeech.speak(text, options);
+    return;
   }
+  if (rnTts && rnTts.speak) {
+    rnTts.speak(text);
+    return;
+  }
+  console.log('TTS:', text);
 }
 
 function stop() {
-  if (TtsLib && TtsLib.stop) {
-    TtsLib.stop();
+  if (expoSpeech && expoSpeech.stop) {
+    expoSpeech.stop();
+    return;
+  }
+  if (rnTts && rnTts.stop) {
+    rnTts.stop();
+    return;
   }
 }
 
