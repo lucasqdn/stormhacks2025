@@ -12,9 +12,9 @@ async function identifyImage(base64) {
   try {
     // API expects JSON with base64 property; adjust as needed
     const resp = await client.post(ML_ENDPOINT, { image_base64: base64 });
-    // Expected response: { label: '...' }
+    // Return the raw response data so the frontend can handle label, audio_url, etc.
     if (resp && resp.data) {
-      return resp.data.label || resp.data.result || null;
+      return resp.data;
     }
     return null;
   } catch (err) {
