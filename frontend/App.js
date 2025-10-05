@@ -3,10 +3,14 @@ import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import UIActionsContext from './contexts/UIActionsContext';
 import TestHomeScreen from './screens/TestHomeScreen';
 import CameraScreen from './screens/CameraScreen';
+import NavigationHome from './screens/NavigationHome';
+import NavigationScreen from './screens/NavigationScreen';
+import { GOOGLE_MAPS_API_KEY } from './config';
 
 export default function App() {
   const actionsRef = useRef({});
-  const [route, setRoute] = useState('home'); // 'home' | 'camera'
+  const [route, setRoute] = useState('home'); // 'home' | 'camera' | 'nav-home' | 'navigating'
+  const [navDestination, setNavDestination] = useState('');
 
   return (
   <UIActionsContext.Provider value={actionsRef.current}>
@@ -16,34 +20,49 @@ export default function App() {
         </View>
 
         <View style={styles.content}>
-          {route === 'home' ? (
+          {route === 'home' && (
             <TestHomeScreen onOpenCamera={() => setRoute('camera')} />
-          ) : (
-            <CameraScreen />
+          )}
+          {route === 'camera' && <CameraScreen />}
+          {route === 'nav-home' && (
+            <NavigationHome
+              onSubmit={(dest) => {
+                setNavDestination(dest);
+                setRoute('navigating');
+              }}
+            />
+          )}
+          {route === 'navigating' && (
+            <NavigationScreen destinationText={navDestination} apiKey={GOOGLE_MAPS_API_KEY} />
           )}
         </View>
 
         <View style={styles.footer}>
-          {route === 'camera' ? (
+          {route === 'camera' && (
             <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onScan && actionsRef.current.onScan()}>
               <Text style={styles.footerButtonText}>Scan</Text>
             </TouchableOpacity>
-          ) : (
+          )}
+          {route !== 'camera' && (
             <TouchableOpacity style={styles.footerButton} onPress={() => setRoute('camera')}>
               <Text style={styles.footerButtonText}>Camera</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity style={styles.footerButton} onPress={() => setRoute('nav-home')}>
+            <Text style={styles.footerButtonText}>Navigate</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onRepeat && actionsRef.current.onRepeat()}>
             <Text style={styles.footerButtonText}>Repeat</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onSettings && actionsRef.current.onSettings()}>
             <Text style={styles.footerButtonText}>Settings</Text>
           </TouchableOpacity>
-          {route === 'camera' ? (
+          {(route === 'camera' || route === 'nav-home' || route === 'navigating') && (
             <TouchableOpacity style={styles.footerButton} onPress={() => setRoute('home')}>
               <Text style={styles.footerButtonText}>Back</Text>
             </TouchableOpacity>
-          ) : (
+          )}
+          {route === 'home' && (
             <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onHelp && actionsRef.current.onHelp()}>
               <Text style={styles.footerButtonText}>Help</Text>
             </TouchableOpacity>
