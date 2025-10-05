@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import api from '../services/api';
 import tts from '../utils/tts';
 
-export default function CameraScreen() {
+export default function CameraScreen({ onClose }) {
   const cameraRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -115,6 +115,11 @@ export default function CameraScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>SightMate — Shopping Assistant</Text>
         <View style={styles.headerRow}>
+          {onClose ? (
+            <TouchableOpacity style={styles.headerButton} onPress={onClose} accessibilityLabel="Close camera">
+              <Text style={styles.headerButtonText}>Close</Text>
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity style={styles.headerButton} onPress={readHelp} accessibilityLabel="Help">
             <Text style={styles.headerButtonText}>Help</Text>
           </TouchableOpacity>
