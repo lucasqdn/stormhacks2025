@@ -332,7 +332,8 @@ const styles = StyleSheet.create({
   glassPill: { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 999, marginLeft: 8 },
   pillText: { color: '#fff', fontWeight: '600' },
 
-  bottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: 120, paddingHorizontal: 16, alignItems: 'center' },
+  // Place the translation box above the toolbar by lifting it higher from the bottom
+  bottomOverlay: { position: 'absolute', left: 0, right: 0, bottom: 170, paddingHorizontal: 16, alignItems: 'center' },
   previewOverlay: { width: 120, height: 120, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
   resultGlass: { borderRadius: 18, padding: 14, backgroundColor: 'rgba(18,18,22,0.5)', alignSelf: 'stretch', overflow: 'hidden' },
   resultMain: { color: '#fff', fontSize: 22, fontWeight: '700' },
