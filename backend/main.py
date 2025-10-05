@@ -1,9 +1,10 @@
+from typing import Dict
 import asyncio
 import logging
 
 from fastapi import FastAPI
 from googletrans import Translator
-from model.yolov8 import detect_object
+from model.yolov8 import detect_object, get_runtime_info
 from pydantic import BaseModel
 
 # Update
@@ -73,3 +74,21 @@ async def identify(payload: IdentifyRequest) -> dict[str, str]:
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "version": VERSION}
+
+
+@app.get("/ml-info")
+def ml_info() -> dict[str, object]:
+    """Expose detector and classifier runtime details for debugging.
+
+    Example response:
+    {
+      "detector": {"weights_file": "yolov8n.pt", "num_classes": 80},
+      "classifier": {"available": true},
+      "last_fusion": {"used_classifier": false, ...}
+    }
+    """
+    try:
+        return get_runtime_info()
+    except Exception:
+        # Avoid breaking apps if info can't be retrieved
+        return {"detector": {}, "classifier": {"available": False}, "last_fusion": {}}
