@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useContext } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput, Platform } from 'react-native';
 import { UIActionsContext } from '../App';
 import { Camera } from 'expo-camera';
 import * as Haptics from 'react-native-haptic-feedback';
@@ -123,14 +123,27 @@ export default function CameraScreen() {
           </TouchableOpacity>
         </View>
       </View>
-      <Camera
-        style={styles.camera}
-        type={Camera.Constants.Type.back}
-        ref={cameraRef}
-        ratio="4:3"
-        accessible={true}
-        accessibilityLabel="Camera preview"
-      />
+
+      {Platform.OS === 'web' ? (
+        <View style={styles.webPlaceholder}>
+          <Text style={{ color: '#fff', marginBottom: 12 }}>Camera isn't available in web. Test TTS or run the app on a mobile device.</Text>
+          <TouchableOpacity
+            style={[styles.captureButton, { width: 200, height: 60, borderRadius: 8 }]}
+            onPress={() => tts.speak('This is a test of the text to speech system')}
+          >
+            <Text style={styles.captureText}>Test Speak</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <Camera
+          style={styles.camera}
+          type={Camera.Constants.Type.back}
+          ref={cameraRef}
+          ratio="4:3"
+          accessible={true}
+          accessibilityLabel="Camera preview"
+        />
+      )}
 
       <View style={styles.controls}>
         <Text style={styles.instructions}>Point the camera at a product and press Scan. The result will be spoken aloud.</Text>
