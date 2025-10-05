@@ -12,9 +12,11 @@ export default function App() {
   return (
   <UIActionsContext.Provider value={actionsRef.current}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>SightMate</Text>
-        </View>
+        {route !== 'camera' && (
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>SightMate</Text>
+          </View>
+        )}
 
         <View style={styles.content}>
           {route === 'home' ? (
@@ -24,32 +26,34 @@ export default function App() {
           )}
         </View>
 
-        <View style={styles.footer}>
-          {route === 'camera' ? (
-            <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onScan && actionsRef.current.onScan()}>
-              <Text style={styles.footerButtonText}>Scan</Text>
+        {route !== 'camera' && (
+          <View style={styles.footer}>
+            {route === 'camera' ? (
+              <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onScan && actionsRef.current.onScan()}>
+                <Text style={styles.footerButtonText}>Scan</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.footerButton} onPress={() => setRoute('camera')}>
+                <Text style={styles.footerButtonText}>Camera</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onRepeat && actionsRef.current.onRepeat()}>
+              <Text style={styles.footerButtonText}>Repeat</Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.footerButton} onPress={() => setRoute('camera')}>
-              <Text style={styles.footerButtonText}>Camera</Text>
+            <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onSettings && actionsRef.current.onSettings()}>
+              <Text style={styles.footerButtonText}>Settings</Text>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onRepeat && actionsRef.current.onRepeat()}>
-            <Text style={styles.footerButtonText}>Repeat</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onSettings && actionsRef.current.onSettings()}>
-            <Text style={styles.footerButtonText}>Settings</Text>
-          </TouchableOpacity>
-          {route === 'camera' ? (
-            <TouchableOpacity style={styles.footerButton} onPress={() => setRoute('home')}>
-              <Text style={styles.footerButtonText}>Back</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onHelp && actionsRef.current.onHelp()}>
-              <Text style={styles.footerButtonText}>Help</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+            {route === 'camera' ? (
+              <TouchableOpacity style={styles.footerButton} onPress={() => setRoute('home')}>
+                <Text style={styles.footerButtonText}>Back</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onHelp && actionsRef.current.onHelp()}>
+                <Text style={styles.footerButtonText}>Help</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
     </UIActionsContext.Provider>
   );
