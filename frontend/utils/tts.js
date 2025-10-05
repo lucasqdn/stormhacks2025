@@ -46,4 +46,4 @@ function stop() {
   });
 }
 
-export default { speak, stop };
+export default { speak, stop, playBase64, playUrl };

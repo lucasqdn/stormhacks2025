@@ -350,5 +350,9 @@ const styles = StyleSheet.create({
   modalTitle: { color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 8 },
   modalLabel: { color: '#ddd', marginTop: 10 },
   input: { backgroundColor: 'rgba(255,255,255,0.12)', color: '#fff', padding: 10, marginTop: 6, borderRadius: 10 },
+  langSelect: { justifyContent: 'center' },
+  langList: { marginTop: 8, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 6 },
+  langItem: { paddingVertical: 8, paddingHorizontal: 10, borderRadius: 6 },
+  langItemText: { color: '#fff' },
   modalButtonsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 14 },
 });

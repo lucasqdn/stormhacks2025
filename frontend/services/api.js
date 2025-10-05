@@ -1,8 +1,10 @@
 import axios from 'axios';
 
 // Default ML endpoint (can be overridden at runtime)
-let ML_ENDPOINT = 'http://localhost:5000/identify';
-let BARCODE_ENDPOINT = 'http://localhost:5000/barcode';
+// Use your machine IP so devices can reach the backend. Change if different.
+let ML_ENDPOINT = 'http://172.16.164.208:8000/identify';
+let PROCESS_ENDPOINT = 'http://172.16.164.208:8000/process-image';
+// let BARCODE_ENDPOINT = 'http://localhost:5000/barcode';
 
 const client = axios.create({
   timeout: 15000,
@@ -35,6 +37,17 @@ async function identifyObject(payload) {
   }
 }
 
+// Call the Python backend /process-image which expects { image, src_lang, dest_lang }
+async function processImage(payload) {
+  try {
+    const resp = await client.post(PROCESS_ENDPOINT, payload);
+    return resp?.data || null;
+  } catch (err) {
+    console.warn('processImage error', err.message || err.toString());
+    throw err;
+  }
+}
+
 async function lookupBarcode(code) {
   try {
     const resp = await client.get(`${BARCODE_ENDPOINT}`, { params: { code } });
@@ -56,6 +69,13 @@ function setEndpoint(url) {
 function getEndpoint() {
   return ML_ENDPOINT;
 }
+function setProcessEndpoint(url) {
+  PROCESS_ENDPOINT = url;
+}
+
+function getProcessEndpoint() {
+  return PROCESS_ENDPOINT;
+}
 function setBarcodeEndpoint(url) {
   BARCODE_ENDPOINT = url;
 }
@@ -64,4 +84,15 @@ function getBarcodeEndpoint() {
   return BARCODE_ENDPOINT;
 }
 
-export default { identifyImage, identifyObject, lookupBarcode, setEndpoint, getEndpoint, setBarcodeEndpoint, getBarcodeEndpoint };
+export default {
+  identifyImage,
+  identifyObject,
+  processImage,
+  lookupBarcode,
+  setEndpoint,
+  getEndpoint,
+  setProcessEndpoint,
+  getProcessEndpoint,
+  setBarcodeEndpoint,
+  getBarcodeEndpoint,
+};
