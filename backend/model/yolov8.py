@@ -87,3 +87,28 @@ def detect_object(image_base64: str):
     best_label = fused_label or yolo_label
 
     return best_label
+
+
+def get_runtime_info() -> dict:
+    """Return minimal runtime info for compatibility with older imports.
+
+    Includes detector weights filename, number of classes, and whether the
+    optional classifier module is available. Does not perform any heavy ops.
+    """
+    try:
+        names = getattr(_MODEL, "names", {})
+        num_classes = len(names) if isinstance(names, dict) else len(names)
+    except Exception:
+        num_classes = None
+
+    cls_available = bool(_cls is not None and getattr(_cls, "AVAILABLE", False))
+
+    return {
+        "detector": {
+            "weights_file": str(_MODEL_PATH.name),
+            "num_classes": num_classes,
+        },
+        "classifier": {
+            "available": cls_available,
+        },
+    }
