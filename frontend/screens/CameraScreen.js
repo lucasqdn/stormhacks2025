@@ -22,6 +22,7 @@ export default function CameraScreen() {
   const [lastResult, setLastResult] = useState(null); // {label, translation, audio_url}
   const [capturedUri, setCapturedUri] = useState(null);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [repeatSlow, setRepeatSlow] = useState(false);
   // Let Settings control the /process-image endpoint by default
   const [endpointInput, setEndpointInput] = useState(api.getProcessEndpoint ? api.getProcessEndpoint() : api.getEndpoint());
   const [targetLang, setTargetLang] = useState('ko');
@@ -236,14 +237,27 @@ export default function CameraScreen() {
 
         <BlurView intensity={40} tint={Platform.OS === 'ios' ? 'systemUltraThinMaterialDark' : 'dark'} style={styles.resultGlass}>
           {lastResult ? (
-            <>
-              <Text style={styles.resultMain} numberOfLines={2}>
-                {lastResult.translation || lastResult.label}
-              </Text>
-              {lastResult?.label && lastResult?.translation ? (
-                <Text style={styles.resultSub} numberOfLines={1}>{lastResult.label}</Text>
-              ) : null}
-            </>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.resultMain} numberOfLines={2}>
+                  {lastResult.translation || lastResult.label}
+                </Text>
+                {lastResult?.label && lastResult?.translation ? (
+                  <Text style={styles.resultSub} numberOfLines={1}>{lastResult.label}</Text>
+                ) : null}
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  const text = lastResult.translation || lastResult.label;
+                  tts.speak(text, { rate: repeatSlow ? 0.5 : 1.0 });
+                  setRepeatSlow((prev) => !prev);
+                }}
+                style={{ marginLeft: 12, padding: 8 }}
+                accessibilityLabel={repeatSlow ? "Repeat slowly" : "Repeat"}
+              >
+                <Ionicons name={repeatSlow ? "volume-low" : "volume-high"} size={26} color="#fff" />
+              </TouchableOpacity>
+            </View>
           ) : (
             <>
               <Text style={[styles.resultMain, { color: '#aaa' }]}>Capture to translate</Text>
