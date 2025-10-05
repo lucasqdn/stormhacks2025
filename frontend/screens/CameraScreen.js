@@ -20,14 +20,9 @@ export default function CameraScreen() {
   const [lastResult, setLastResult] = useState(null); // {label, translation, audio_url}
   const [capturedUri, setCapturedUri] = useState(null);
   const [settingsVisible, setSettingsVisible] = useState(false);
-<<<<<<< HEAD
-  const [endpointInput, setEndpointInput] = useState(api.getProcessEndpoint());
-  const [targetLang, setTargetLang] = useState('ko'); // <- language to request from backend
-  const [langPickerVisible, setLangPickerVisible] = useState(false);
-=======
-  const [endpointInput, setEndpointInput] = useState(api.getEndpoint());
+  // Let Settings control the /process-image endpoint by default
+  const [endpointInput, setEndpointInput] = useState(api.getProcessEndpoint ? api.getProcessEndpoint() : api.getEndpoint());
   const [targetLang, setTargetLang] = useState('ko');
->>>>>>> 7ad3f95bc2e5929aa4fe4e4c5f535aae8e7bfbf9
 
   // Animations
   const topBarY = useRef(new Animated.Value(-30)).current;
@@ -103,15 +98,15 @@ export default function CameraScreen() {
       tts.speak('Analyzing, please wait.');
       startShimmer();
 
-      const payload = { image_base64: photo?.base64 || '', target_lang: targetLang };
-      const resp = await api.identifyObject(payload);
+  const payload = { image: photo?.base64 || '', src_lang: 'en', dest_lang: targetLang };
+  const resp = await (api.processImage ? api.processImage(payload) : api.identifyObject(payload));
 
       stopShimmer();
 
       if (resp) {
         const result = {
-          label: resp.word || resp.label || '',
-          translation: resp.translation || '',
+          label: resp.word || resp.label || resp.src_lang_description || '',
+          translation: resp.translation || resp.dest_lang_description || '',
           audio_url: resp.audio_url || '',
         };
         setLastResult(result);
@@ -133,7 +128,7 @@ export default function CameraScreen() {
   };
 
   const openSettings = () => {
-  setEndpointInput(api.getProcessEndpoint());
+  setEndpointInput(api.getProcessEndpoint ? api.getProcessEndpoint() : api.getEndpoint());
     setSettingsVisible(true);
   };
 
@@ -141,7 +136,7 @@ export default function CameraScreen() {
     try {
       const url = new URL(endpointInput);
       if (!/^https?:$/.test(url.protocol)) throw new Error('Only http or https is allowed.');
-  api.setProcessEndpoint(endpointInput);
+  if (api.setProcessEndpoint) api.setProcessEndpoint(endpointInput); else api.setEndpoint(endpointInput);
       setSettingsVisible(false);
       tts.speak('Settings saved.');
     } catch (e) {
@@ -287,34 +282,6 @@ export default function CameraScreen() {
         <View style={styles.modalCenter}>
           <BlurView intensity={50} tint={Platform.OS === 'ios' ? 'systemThinMaterialDark' : 'dark'} style={styles.modalCard}>
             <Text style={styles.modalTitle}>Settings</Text>
-<<<<<<< HEAD
-            <Text style={styles.modalLabel}>Target Language</Text>
-            <TouchableOpacity
-              style={[styles.input, styles.langSelect]}
-              onPress={() => setLangPickerVisible(!langPickerVisible)}
-              accessibilityRole="button"
-              accessibilityLabel="Select target language"
-            >
-              <Text style={{ color: theme.colors.text }}>{LANGUAGES.find(l => l.code === targetLang)?.label || targetLang}</Text>
-            </TouchableOpacity>
-            {langPickerVisible && (
-              <View style={styles.langList}>
-                {LANGUAGES.map((l) => (
-                  <TouchableOpacity
-                    key={l.code}
-                    style={styles.langItem}
-                    onPress={() => { setTargetLang(l.code); setLangPickerVisible(false); }}
-                  >
-                    <Text style={styles.langItemText}>{l.label} ({l.code})</Text>
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity style={styles.langItem} onPress={() => { setLangPickerVisible(false); }}>
-                  <Text style={[styles.langItemText, { opacity: 0.8 }]}>Close</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            <Text style={styles.modalLabel}>Process Endpoint URL (/process-image)</Text>
-=======
 
             <Text style={styles.modalLabel}>Target Language (e.g., ko, es, fr)</Text>
             <TextInput
@@ -326,8 +293,7 @@ export default function CameraScreen() {
               placeholderTextColor="#aaa"
             />
 
-            <Text style={styles.modalLabel}>ML Endpoint URL</Text>
->>>>>>> 7ad3f95bc2e5929aa4fe4e4c5f535aae8e7bfbf9
+            <Text style={styles.modalLabel}>Process Endpoint URL (/process-image)</Text>
             <TextInput
               style={styles.input}
               value={endpointInput}
