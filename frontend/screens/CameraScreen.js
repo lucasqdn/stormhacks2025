@@ -12,6 +12,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../services/api';
 import db from '../services/db';
 import tts from '../utils/tts';
+import settings from '../services/settings';
 
 export default function CameraScreen() {
   const cameraRef = useRef(null);
@@ -67,6 +68,19 @@ export default function CameraScreen() {
     if (permission?.granted) tts.speak('Camera ready. Tap the shutter to capture.');
     return () => tts.stop();
   }, [permission]);
+
+  // load persisted target language and subscribe to changes
+  useEffect(() => {
+    let unsub = null;
+    (async () => {
+      try {
+        const saved = await settings.getTargetLang();
+        if (saved) setTargetLang(saved);
+      } catch (e) { console.warn('load targetLang', e); }
+    })();
+    unsub = settings.subscribe((s) => { if (s?.targetLang) setTargetLang(s.targetLang); });
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, []);
 
   useEffect(() => {
     if (!lastResult) return;
@@ -127,9 +141,10 @@ export default function CameraScreen() {
         tts.speak(result.translation || result.label || 'identified');
             // If you prefer the ElevenLabs audio_url returned by backend, play via your tts util instead
 
-            // Save to local dictionary (fire-and-forget)
+            // Save to local dictionary (fire-and-forget) with language tag
             try {
-              db.addWord(result.label || spoken, result.translation || null).catch((e) => console.warn('db addWord', e));
+              const wordToSave = result.label || result.translation || '';
+              db.addWord(wordToSave, result.translation || null, targetLang).catch((e) => console.warn('db addWord', e));
             } catch (e) {
               console.warn('db addWord catch', e);
             }

@@ -38,6 +38,7 @@ console.warn('DB backend selected:', storageBackend);
 
 async function init() {
   if (useSQLite) {
+    // Create table if missing and ensure `language` column exists (migration for older installs)
     return new Promise((resolve, reject) => {
       sqliteDb.transaction((tx) => {
         tx.executeSql(
@@ -45,10 +46,20 @@ async function init() {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             word TEXT NOT NULL,
             translation TEXT,
+            language TEXT DEFAULT 'default',
             created_at DATETIME DEFAULT (datetime('now'))
           );`,
           [],
-          () => resolve(true),
+          () => {
+            // after ensuring table exists, check columns
+            tx.executeSql('PRAGMA table_info(words);', [], (_, { rows }) => {
+              const cols = rows._array || [];
+              const hasLang = cols.some((c) => c.name === 'language');
+              if (!hasLang) {
+                tx.executeSql("ALTER TABLE words ADD COLUMN language TEXT DEFAULT 'default';", [], () => resolve(true), (_, err) => { console.warn('add col err', err); reject(err); return false; });
+              } else resolve(true);
+            }, (_, err) => { console.warn('pragma err', err); reject(err); return false; });
+          },
           (_, err) => { console.warn('create table err', err); reject(err); return false; }
         );
       }, reject);
@@ -59,7 +70,27 @@ async function init() {
   try {
     if (useAsyncStorage) {
       const existing = await AsyncStorage.getItem(AS_KEY);
-      if (!existing) await AsyncStorage.setItem(AS_KEY, JSON.stringify([]));
+      if (!existing) {
+        await AsyncStorage.setItem(AS_KEY, JSON.stringify([]));
+        return true;
+      }
+
+      // Backfill missing `language` on older records so filtering works
+      try {
+        const arr = JSON.parse(existing || '[]');
+        let changed = false;
+        const newArr = arr.map((it) => {
+          if (typeof it === 'object' && it !== null && !('language' in it)) {
+            changed = true;
+            return { ...it, language: 'default' };
+          }
+          return it;
+        });
+        if (changed) await AsyncStorage.setItem(AS_KEY, JSON.stringify(newArr));
+      } catch (e) {
+        console.warn('AsyncStorage backfill err', e);
+      }
+
       return true;
     }
 
@@ -72,13 +103,13 @@ async function init() {
   }
 }
 
-async function addWord(word, translation = null) {
+async function addWord(word, translation = null, language = 'default') {
   if (useSQLite) {
     return new Promise((resolve, reject) => {
       sqliteDb.transaction((tx) => {
         tx.executeSql(
-          'INSERT INTO words (word, translation) values (?, ?);',
-          [word, translation],
+          'INSERT INTO words (word, translation, language) values (?, ?, ?);',
+          [word, translation, language],
           (_, result) => resolve(result.insertId),
           (_, err) => { console.warn('insert err', err); reject(err); return false; }
         );
@@ -91,14 +122,14 @@ async function addWord(word, translation = null) {
       const raw = await AsyncStorage.getItem(AS_KEY);
       const arr = raw ? JSON.parse(raw) : [];
       const id = Date.now();
-      arr.unshift({ id, word, translation, created_at: new Date().toISOString() });
+      arr.unshift({ id, word, translation, language, created_at: new Date().toISOString() });
       await AsyncStorage.setItem(AS_KEY, JSON.stringify(arr));
       return id;
     }
 
     // memory fallback
     const id = Date.now();
-    memoryStore.unshift({ id, word, translation, created_at: new Date().toISOString() });
+    memoryStore.unshift({ id, word, translation, language, created_at: new Date().toISOString() });
     return id;
   } catch (e) {
     console.warn('async addWord err', e);
@@ -106,16 +137,25 @@ async function addWord(word, translation = null) {
   }
 }
 
-async function listWords() {
+async function listWords(language = null) {
   if (useSQLite) {
     return new Promise((resolve, reject) => {
       sqliteDb.transaction((tx) => {
-        tx.executeSql(
-          'SELECT id, word, translation, created_at FROM words ORDER BY created_at DESC;',
-          [],
-          (_, { rows }) => resolve(rows._array),
-          (_, err) => { console.warn('select err', err); reject(err); return false; }
-        );
+        if (language) {
+          tx.executeSql(
+            'SELECT id, word, translation, language, created_at FROM words WHERE language = ? ORDER BY created_at DESC;',
+            [language],
+            (_, { rows }) => resolve(rows._array),
+            (_, err) => { console.warn('select err', err); reject(err); return false; }
+          );
+        } else {
+          tx.executeSql(
+            'SELECT id, word, translation, language, created_at FROM words ORDER BY created_at DESC;',
+            [],
+            (_, { rows }) => resolve(rows._array),
+            (_, err) => { console.warn('select err', err); reject(err); return false; }
+          );
+        }
       }, reject);
     });
   }
@@ -124,25 +164,32 @@ async function listWords() {
     if (useAsyncStorage) {
       const raw = await AsyncStorage.getItem(AS_KEY);
       const arr = raw ? JSON.parse(raw) : [];
-      return arr;
+      return language ? arr.filter((r) => r.language === language) : arr;
     }
 
     // memory fallback
-    return memoryStore;
+    return language ? memoryStore.filter((r) => r.language === language) : memoryStore;
   } catch (e) {
     console.warn('async listWords err', e);
     throw e;
   }
 }
 
-async function deleteWord(id) {
+async function deleteWord(id, language = null) {
   if (useSQLite) {
     return new Promise((resolve, reject) => {
       sqliteDb.transaction((tx) => {
-        tx.executeSql('DELETE FROM words WHERE id = ?;', [id],
-          () => resolve(true),
-          (_, err) => { console.warn('delete err', err); reject(err); return false; }
-        );
+        if (language) {
+          tx.executeSql('DELETE FROM words WHERE id = ? AND language = ?;', [id, language],
+            () => resolve(true),
+            (_, err) => { console.warn('delete err', err); reject(err); return false; }
+          );
+        } else {
+          tx.executeSql('DELETE FROM words WHERE id = ?;', [id],
+            () => resolve(true),
+            (_, err) => { console.warn('delete err', err); reject(err); return false; }
+          );
+        }
       }, reject);
     });
   }
@@ -151,13 +198,13 @@ async function deleteWord(id) {
     if (useAsyncStorage) {
       const raw = await AsyncStorage.getItem(AS_KEY);
       const arr = raw ? JSON.parse(raw) : [];
-      const filtered = arr.filter((r) => r.id !== id);
+      const filtered = arr.filter((r) => !(r.id === id && (language ? r.language === language : true)));
       await AsyncStorage.setItem(AS_KEY, JSON.stringify(filtered));
       return true;
     }
 
     // memory fallback
-    memoryStore = memoryStore.filter((r) => r.id !== id);
+    memoryStore = memoryStore.filter((r) => !(r.id === id && (language ? r.language === language : true)));
     return true;
   } catch (e) {
     console.warn('async deleteWord err', e);
