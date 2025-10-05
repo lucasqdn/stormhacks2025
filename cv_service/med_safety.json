@@ -1,0 +1,10 @@
+{
+  "Acetaminophen": {
+    "dosage": "Adults: 1–2 tablets every 6 hours as needed.",
+    "warning": "Do not exceed 8 tablets in 24 hours."
+  },
+  "Ibuprofen": {
+    "dosage": "Adults: 200–400 mg every 6–8 hours.",
+    "warning": "Take with food. Stop if stomach pain occurs."
+  }
+}

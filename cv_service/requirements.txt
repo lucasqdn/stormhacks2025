@@ -1,6 +1,20 @@
+
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# NumPy 2.x for Python 3.12+
+numpy==2.1.3
+opencv-python
+pillow==10.4.0
+
+# Torch that supports 3.12+
+torch==2.7.1+cpu
+torchvision==0.22.1+cpu
+torchaudio==2.7.1+cpu
+
+easyocr==1.7.1
+ultralytics
+
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
-numpy
-opencv-python-headless==4.10.0.84
-ultralytics==8.2.103
-easyocr==1.7.1
+python-multipart==0.0.9
