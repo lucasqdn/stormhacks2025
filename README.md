@@ -2,6 +2,20 @@
 
 Camera-powered language learning app built at StormHacks 2025. The app uses your phone camera to detect everyday objects with YOLOv8, translates the label into your target language, and speaks it aloud. It’s split into an Expo React Native frontend and a FastAPI backend with Ultralytics YOLO and googletrans.
 
+## Who it's for
+
+- Language learners (beginner to intermediate) who want quick, contextual vocabulary practice
+- Travelers who need fast, in-the-moment translations of everyday objects
+- Visual learners, kids, and parents looking for an engaging way to build word associations
+- Educators and hobbyists exploring computer vision + language learning workflows
+
+## Why we built it
+
+- Learning sticks better when it’s tied to your surroundings—turn any object into a micro lesson
+- Reduce friction: one tap to detect, translate, and hear pronunciation—no typing or searching
+- Explore a practical full-stack ML pipeline for mobile: camera → backend model → translation → TTS feedback
+- Built at StormHacks 2025 to showcase a polished, accessible UI paired with a lightweight, CPU-only backend deploy
+
 ## What you get
 
 - Full-screen camera with a clean, “liquid glass” UI and white shutter button
