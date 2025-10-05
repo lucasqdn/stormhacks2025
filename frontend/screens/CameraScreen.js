@@ -10,6 +10,7 @@ import { BlurView } from 'expo-blur';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import api from '../services/api';
+import db from '../services/db';
 import tts from '../utils/tts';
 
 export default function CameraScreen() {
@@ -23,6 +24,18 @@ export default function CameraScreen() {
   // Let Settings control the /process-image endpoint by default
   const [endpointInput, setEndpointInput] = useState(api.getProcessEndpoint ? api.getProcessEndpoint() : api.getEndpoint());
   const [targetLang, setTargetLang] = useState('ko');
+  const [langPickerVisible, setLangPickerVisible] = useState(false);
+
+  const LANGUAGES = [
+    { code: 'en', label: 'English' },
+    { code: 'ko', label: 'Korean' },
+    { code: 'es', label: 'Spanish' },
+    { code: 'fr', label: 'French' },
+    { code: 'de', label: 'German' },
+    { code: 'zh-CN', label: 'Chinese (Simplified)' },
+    { code: 'ja', label: 'Japanese' },
+    { code: 'pt', label: 'Portuguese' },
+  ];
 
   // Animations
   const topBarY = useRef(new Animated.Value(-30)).current;
@@ -112,7 +125,14 @@ export default function CameraScreen() {
         setLastResult(result);
 
         tts.speak(result.translation || result.label || 'identified');
-        // If you prefer the ElevenLabs audio_url returned by backend, play via your tts util instead
+            // If you prefer the ElevenLabs audio_url returned by backend, play via your tts util instead
+
+            // Save to local dictionary (fire-and-forget)
+            try {
+              db.addWord(result.label || spoken, result.translation || null).catch((e) => console.warn('db addWord', e));
+            } catch (e) {
+              console.warn('db addWord catch', e);
+            }
       } else {
         tts.speak('Could not identify the object. Try again.');
       }
@@ -186,8 +206,8 @@ export default function CameraScreen() {
             <TouchableOpacity onPress={() => tts.speak('Tap the shutter to capture and translate.')} style={styles.glassPill}>
               <Text style={styles.pillText}>Help</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={openSettings} style={styles.glassPill}>
-              <Text style={styles.pillText}>{targetLang.toUpperCase()}</Text>
+            <TouchableOpacity onPress={() => { setSettingsVisible(true); setLangPickerVisible(true); }} style={styles.glassPill}>
+              <Text style={styles.pillText}>{(LANGUAGES.find(l => l.code === targetLang)?.label || targetLang).split(' ')[0]}</Text>
             </TouchableOpacity>
           </View>
         </BlurView>
@@ -284,15 +304,23 @@ export default function CameraScreen() {
           <BlurView intensity={50} tint={Platform.OS === 'ios' ? 'systemThinMaterialDark' : 'dark'} style={styles.modalCard}>
             <Text style={styles.modalTitle}>Settings</Text>
 
-            <Text style={styles.modalLabel}>Target Language (e.g., ko, es, fr)</Text>
-            <TextInput
-              style={styles.input}
-              value={targetLang}
-              onChangeText={setTargetLang}
-              autoCapitalize="none"
-              placeholder="ko"
-              placeholderTextColor="#aaa"
-            />
+            <Text style={styles.modalLabel}>Target Language</Text>
+            <TouchableOpacity
+              style={[styles.input, styles.langSelect]}
+              onPress={() => setLangPickerVisible((v) => !v)}
+              accessibilityRole="button"
+            >
+              <Text style={{ color: '#fff' }}>{LANGUAGES.find(l => l.code === targetLang)?.label || targetLang}</Text>
+            </TouchableOpacity>
+            {langPickerVisible && (
+              <View style={styles.langList}>
+                {LANGUAGES.map((l) => (
+                  <TouchableOpacity key={l.code} style={styles.langItem} onPress={() => { setTargetLang(l.code); setLangPickerVisible(false); }}>
+                    <Text style={styles.langItemText}>{l.label} ({l.code})</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
 
             <Text style={styles.modalLabel}>Process Endpoint URL (/process-image)</Text>
             <TextInput
@@ -306,10 +334,10 @@ export default function CameraScreen() {
             />
 
             <View style={styles.modalButtonsRow}>
-              <TouchableOpacity style={styles.glassPill} onPress={() => setSettingsVisible(false)}>
+              <TouchableOpacity style={styles.glassPill} onPress={() => { setSettingsVisible(false); setLangPickerVisible(false); }}>
                 <Text style={styles.pillText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.glassPill} onPress={saveSettings}>
+              <TouchableOpacity style={styles.glassPill} onPress={() => { saveSettings(); setLangPickerVisible(false); }}>
                 <Text style={styles.pillText}>Save</Text>
               </TouchableOpacity>
             </View>
