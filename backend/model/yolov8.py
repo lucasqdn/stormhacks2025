@@ -23,8 +23,35 @@ def detect_object(image_base64: str):
         print("No objects detected.")
         return None
 
-    # Use tensor.argmax to select the highest-confidence box
-    best_idx = int(result.boxes.conf.argmax().item())
+    # Prefer objects that are BOTH sufficiently confident and relatively large.
+    # If none meet both thresholds, fall back to a composite score (conf + k*area).
+    boxes = result.boxes
+    conf = boxes.conf.squeeze(-1)  # (N,)
+    xyxy = boxes.xyxy              # (N, 4)
+
+    # Compute relative area per box
+    widths = (xyxy[:, 2] - xyxy[:, 0]).clamp(min=0)
+    heights = (xyxy[:, 3] - xyxy[:, 1]).clamp(min=0)
+    areas = widths * heights
+
+    # Normalize by image area to get area fraction
+    h, w = result.orig_shape
+    img_area = max(float(w) * float(h), 1.0)
+    area_frac = areas / img_area
+
+    CONF_THRESH = 0.40         # confidence must be at least this
+    AREA_FRAC_THRESH = 0.03    # box must cover at least 3% of the image
+
+    mask = (conf >= CONF_THRESH) & (area_frac >= AREA_FRAC_THRESH)
+    if mask.any():
+        idxs = mask.nonzero(as_tuple=False).squeeze(-1)
+        # Among qualifying boxes, maximize a composite score
+        score = conf[idxs] + 0.50 * area_frac[idxs]
+        best_idx = int(idxs[int(score.argmax().item())].item())
+    else:
+        # Fallback: weighted composite across all boxes
+        score_all = conf + 0.30 * area_frac
+        best_idx = int(score_all.argmax().item())
     best_class_id = int(result.boxes.cls[best_idx])
     best_label = _MODEL.names[best_class_id]
 
