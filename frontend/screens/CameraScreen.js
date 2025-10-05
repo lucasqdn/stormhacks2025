@@ -1,41 +1,38 @@
 import React, { useEffect, useRef, useState, useContext } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput, Platform } from 'react-native';
-import { UIActionsContext } from '../App';
-import { Camera } from 'expo-camera';
-import * as Haptics from 'react-native-haptic-feedback';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Modal, TextInput } from 'react-native';
+import UIActionsContext from '../contexts/UIActionsContext';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
 import api from '../services/api';
 import tts from '../utils/tts';
 
 export default function CameraScreen() {
   const cameraRef = useRef(null);
-  const [hasPermission, setHasPermission] = useState(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastResult, setLastResult] = useState('');
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [endpointInput, setEndpointInput] = useState(api.getEndpoint());
 
   useEffect(() => {
-    (async () => {
-      // Request camera permission
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
-      if (status === 'granted') {
-        tts.speak('Ready to scan.');
-      } else {
-        tts.speak('Camera permission denied. Please enable camera permissions in settings.');
-      }
-    })();
+    // Auto-request permission on first load if status is undetermined
+    if (permission && permission.status === 'undetermined') {
+      requestPermission();
+    }
+    if (permission?.granted) {
+      tts.speak('Ready to scan.');
+    }
     return () => {
       tts.stop();
     };
-  }, []);
+  }, [permission]);
 
   const handleCapture = async () => {
     if (!cameraRef.current || isProcessing) return;
     try {
       setIsProcessing(true);
       tts.speak('Capturing now.');
-      Haptics.trigger('impactLight');
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, base64: true, skipProcessing: true });
       tts.speak('Analyzing, please wait.');
@@ -94,18 +91,21 @@ export default function CameraScreen() {
     };
   }, [actionsRef, lastResult]);
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
-      <View style={styles.center}>
-        <Text>Requesting camera permission...</Text>
+      <View style={styles.centerDark}>
+        <Text style={styles.white}>Requesting camera permission...</Text>
       </View>
     );
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
-      <View style={styles.center}>
-        <Text>No access to camera.</Text>
+      <View style={styles.centerDark}>
+        <Text style={{ color: '#fff', marginBottom: 12 }}>No access to camera.</Text>
+        <TouchableOpacity style={styles.captureButton} onPress={requestPermission}>
+          <Text style={styles.captureText}>Grant Permission</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -123,27 +123,16 @@ export default function CameraScreen() {
           </TouchableOpacity>
         </View>
       </View>
-
-      {Platform.OS === 'web' ? (
-        <View style={styles.webPlaceholder}>
-          <Text style={{ color: '#fff', marginBottom: 12 }}>Camera isn't available in web. Test TTS or run the app on a mobile device.</Text>
-          <TouchableOpacity
-            style={[styles.captureButton, { width: 200, height: 60, borderRadius: 8 }]}
-            onPress={() => tts.speak('This is a test of the text to speech system')}
-          >
-            <Text style={styles.captureText}>Test Speak</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <Camera
-          style={styles.camera}
-          type={Camera.Constants.Type.back}
-          ref={cameraRef}
-          ratio="4:3"
-          accessible={true}
-          accessibilityLabel="Camera preview"
-        />
-      )}
+      <CameraView
+        style={styles.camera}
+        facing="back"
+        ref={cameraRef}
+        accessible={true}
+        accessibilityLabel="Camera preview"
+        onError={(e) => {
+          console.warn('Camera error:', e?.nativeEvent || e);
+        }}
+      />
 
       <View style={styles.controls}>
         <Text style={styles.instructions}>Point the camera at a product and press Scan. The result will be spoken aloud.</Text>
@@ -167,7 +156,7 @@ export default function CameraScreen() {
             onPress={() => {
               if (lastResult) {
                 tts.speak(lastResult);
-                Haptics.trigger('impactLight');
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               } else {
                 tts.speak('No previous result to repeat');
               }
@@ -231,6 +220,8 @@ const styles = StyleSheet.create({
   },
   captureText: { color: '#fff', fontSize: 22, fontWeight: '600' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
+  white: { color: '#fff' },
   resultBox: { padding: 10, marginTop: 6 },
   resultText: { color: '#fff' },
   resultRow: { flexDirection: 'row', alignItems: 'center' },

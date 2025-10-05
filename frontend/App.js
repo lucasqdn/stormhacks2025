@@ -1,32 +1,40 @@
 import React, { useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import CameraScreen from './screens/CameraScreen';
-
-// Simple context to send UI actions (scan, repeat, settings, help) to the CameraScreen
-export const UIActionsContext = React.createContext({
-  onScan: () => {},
-  onRepeat: () => {},
-  onSettings: () => {},
-  onHelp: () => {},
-});
+import { StyleSheet, View, Text, TouchableOpacity, Alert } from 'react-native';
+import UIActionsContext from './contexts/UIActionsContext';
+import TestHomeScreen from './screens/TestHomeScreen';
 
 export default function App() {
   const actionsRef = useRef({});
 
   return (
-    <UIActionsContext.Provider value={actionsRef.current}>
+  <UIActionsContext.Provider value={actionsRef.current}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>SightMate</Text>
         </View>
 
         <View style={styles.content}>
-          <CameraScreen />
+          <TestHomeScreen
+            onOpenCamera={() =>
+              Alert.alert(
+                'Camera disabled',
+                'The camera screen is temporarily disabled while we resolve a native module issue.'
+              )
+            }
+          />
         </View>
 
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onScan && actionsRef.current.onScan()}>
-            <Text style={styles.footerButtonText}>Scan</Text>
+          <TouchableOpacity
+            style={styles.footerButton}
+            onPress={() =>
+              Alert.alert(
+                'Camera disabled',
+                'The camera screen is temporarily disabled while we resolve a native module issue.'
+              )
+            }
+          >
+            <Text style={styles.footerButtonText}>Camera</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.footerButton} onPress={() => actionsRef.current.onRepeat && actionsRef.current.onRepeat()}>
             <Text style={styles.footerButtonText}>Repeat</Text>
