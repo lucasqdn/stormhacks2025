@@ -55,4 +55,28 @@ async function stop() {
   }
 }
 
+async function playBase64(base64Audio) {
+  if (!base64Audio) return;
+
+  try {
+    const sound = new Audio.Sound();
+    await sound.loadAsync({ uri: `data:audio/mpeg;base64,${base64Audio}` });
+    await sound.playAsync();
+  } catch (error) {
+    console.error('Error playing Base64 audio:', error);
+  }
+}
+
+async function playUrl(audioUrl) {
+  if (!audioUrl) return;
+
+  try {
+    const sound = new Audio.Sound();
+    await sound.loadAsync({ uri: audioUrl });
+    await sound.playAsync();
+  } catch (error) {
+    console.error('Error playing audio from URL:', error);
+  }
+}
+
 export default { speak, stop, playBase64, playUrl };
