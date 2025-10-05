@@ -1,7 +1,7 @@
-fastapi==0.118
-googletrans==4.0.0rc1
+fastapi==0.118.0
+uvicorn==0.37.0
+googletrans==4.0.2
 pydantic==2.11.10
-pydantic_core==2.33.2
 scipy==1.16.2
 tokenizers==0.22.1
 torch==2.8.0
