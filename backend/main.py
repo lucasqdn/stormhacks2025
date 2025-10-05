@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from typing import Dict
 
 from fastapi import FastAPI
 from googletrans import Translator
@@ -50,7 +49,7 @@ def safe_detect(image_b64: str) -> str:
 
 
 @app.post("/process-image")
-async def process_image(payload: ProcessImageRequest) -> Dict[str, str]:
+async def process_image(payload: ProcessImageRequest) -> dict[str, str]:
     # Run object detection (synchronous)
     obj = safe_detect(payload.image)
 
@@ -62,7 +61,7 @@ async def process_image(payload: ProcessImageRequest) -> Dict[str, str]:
 
 
 @app.post("/identify")
-async def identify(payload: IdentifyRequest) -> Dict[str, str]:
+async def identify(payload: IdentifyRequest) -> dict[str, str]:
     """Compatibility endpoint: detect object and translate to a single target language.
     Returns shape { word, translation }.
     """
@@ -72,5 +71,5 @@ async def identify(payload: IdentifyRequest) -> Dict[str, str]:
 
 
 @app.get("/health")
-def health() -> Dict[str, str]:
+def health() -> dict[str, str]:
     return {"status": "ok", "version": VERSION}
