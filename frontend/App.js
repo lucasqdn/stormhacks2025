@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import theme from './utils/theme';
 import UIActionsContext from './contexts/UIActionsContext';
 import TestHomeScreen from './screens/TestHomeScreen';
 import CameraScreen from './screens/CameraScreen';
@@ -55,11 +56,11 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  header: { height: 60, backgroundColor: '#0a84ff', alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  container: { flex: 1, backgroundColor: theme.colors.background },
+  header: { height: 60, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { color: theme.colors.text, fontSize: 18, fontWeight: '700' },
   content: { flex: 1 },
-  footer: { height: 72, backgroundColor: '#111', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
-  footerButton: { padding: 10, backgroundColor: '#222', borderRadius: 8 },
-  footerButtonText: { color: '#fff' },
+  footer: { height: 72, backgroundColor: theme.colors.surface, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
+  footerButton: { padding: theme.spacing(1), backgroundColor: theme.colors.surface, borderRadius: 8 },
+  footerButtonText: { color: theme.colors.text },
 });

@@ -3,15 +3,16 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Mod
 import UIActionsContext from '../contexts/UIActionsContext';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-av';
 import api from '../services/api';
 import tts from '../utils/tts';
+import theme from '../utils/theme';
 
-export default function CameraScreen({ onClose }) {
+export default function CameraScreen() {
   const cameraRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [scanMode, setScanMode] = useState(null); // 'barcode' | null
-  const [lastResult, setLastResult] = useState('');
+  const [lastResult, setLastResult] = useState(null); // will store { label, audio_url?, ... }
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [endpointInput, setEndpointInput] = useState(api.getEndpoint());
 
@@ -29,41 +30,32 @@ export default function CameraScreen({ onClose }) {
   }, [permission]);
 
   const handleCapture = async () => {
-    // Toggle barcode scanning on first press; cancel on second press
-    if (!scanMode) {
-      setScanMode('barcode');
-      tts.speak('Point the barcode at the camera');
-      return;
-    }
-    if (scanMode === 'barcode') {
-      setScanMode(null);
-      tts.speak('Scan cancelled');
-      return;
-    }
-  };
-
-  const onBarCodeScanned = async ({ type, data }) => {
-    if (isProcessing) return;
-    // Log the raw barcode data and type to the terminal (Metro/VS Code)
-    console.log('Barcode scanned:', { type, data });
-    setIsProcessing(true);
+    if (!cameraRef.current || isProcessing) return;
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      tts.speak('Barcode detected. Looking up product.');
-      const result = await api.lookupBarcode(String(data));
-      if (result) {
-        setLastResult(result);
-        tts.speak(`Product: ${result}`);
+      setIsProcessing(true);
+      tts.speak('Capturing now.');
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.5, base64: true, skipProcessing: true });
+      tts.speak('Analyzing, please wait.');
+
+      const resp = await api.identifyImage(photo.base64);
+
+      if (resp) {
+        // resp may be string or object
+        const resultObj = typeof resp === 'string' ? { label: resp } : resp;
+        setLastResult(resultObj);
+        const spoken = resultObj.label || resultObj.word || 'identified';
+        tts.speak(spoken);
       } else {
-        tts.speak('No product found for this code.');
+        tts.speak('Could not identify the product. Try again.');
       }
     } catch (err) {
-      console.log('barcode error', err.message || err);
-      tts.speak('There was an error looking up this code.');
+      console.log('capture error', err.message || err);
+      tts.speak('There was an error. Check network or try again.');
       Alert.alert('Error', err.message || String(err));
     } finally {
       setIsProcessing(false);
-      setScanMode(null);
     }
   };
 
@@ -89,8 +81,10 @@ export default function CameraScreen({ onClose }) {
     if (!actionsRef) return;
     actionsRef.onScan = handleCapture;
     actionsRef.onRepeat = () => {
-      if (lastResult) tts.speak(lastResult);
-      else tts.speak('No previous result to repeat');
+      if (lastResult) {
+        const text = lastResult.label || lastResult.word || String(lastResult);
+        tts.speak(text);
+      } else tts.speak('No previous result to repeat');
     };
     actionsRef.onSettings = openSettings;
     actionsRef.onHelp = readHelp;
@@ -115,7 +109,7 @@ export default function CameraScreen({ onClose }) {
   if (!permission.granted) {
     return (
       <View style={styles.centerDark}>
-        <Text style={{ color: '#fff', marginBottom: 12 }}>No access to camera.</Text>
+        <Text style={{ color: theme.colors.text, marginBottom: 12 }}>No access to camera.</Text>
         <TouchableOpacity style={styles.captureButton} onPress={requestPermission}>
           <Text style={styles.captureText}>Grant Permission</Text>
         </TouchableOpacity>
@@ -128,11 +122,6 @@ export default function CameraScreen({ onClose }) {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>SightMate — Shopping Assistant</Text>
         <View style={styles.headerRow}>
-          {onClose ? (
-            <TouchableOpacity style={styles.headerButton} onPress={onClose} accessibilityLabel="Close camera">
-              <Text style={styles.headerButtonText}>Close</Text>
-            </TouchableOpacity>
-          ) : null}
           <TouchableOpacity style={styles.headerButton} onPress={readHelp} accessibilityLabel="Help">
             <Text style={styles.headerButtonText}>Help</Text>
           </TouchableOpacity>
@@ -150,8 +139,6 @@ export default function CameraScreen({ onClose }) {
         onError={(e) => {
           console.warn('Camera error:', e?.nativeEvent || e);
         }}
-        onBarcodeScanned={scanMode === 'barcode' ? onBarCodeScanned : undefined}
-        barcodeScannerSettings={scanMode === 'barcode' ? { barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'qr'] } : undefined}
       />
 
       <View style={styles.controls}>
@@ -163,40 +150,60 @@ export default function CameraScreen({ onClose }) {
           accessibilityRole="button"
           accessibilityLabel="Capture photo"
         >
-          {isProcessing ? (
-            <ActivityIndicator color="#fff" />
-          ) : scanMode === 'barcode' ? (
-            <Text style={styles.captureText}>Cancel</Text>
-          ) : (
-            <Text style={styles.captureText}>Scan</Text>
-          )}
+          {isProcessing ? <ActivityIndicator color={theme.colors.text} /> : <Text style={styles.captureText}>Scan</Text>}
         </TouchableOpacity>
 
-        {scanMode === 'barcode' && (
-          <Text style={{ color: '#9fd', marginTop: 8 }}>Scanning... align the barcode within the frame</Text>
-        )}
-
-        <View style={styles.resultRow}>
-          <View style={styles.resultBox} accessible={true} accessibilityLabel={`Last result: ${lastResult}`}>
-            <Text style={styles.resultText}>{lastResult ? `Result: ${lastResult}` : 'No result yet'}</Text>
+        <View style={styles.resultRowColumn}>
+          <View style={styles.largeResult} accessible={true} accessibilityLabel={`Last result: ${lastResult?.label || lastResult?.word || ''}`}>
+            <Text style={styles.largeResultText}>{lastResult ? (lastResult.label || lastResult.word) : 'No result yet'}</Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.repeatButton}
-            onPress={() => {
-              if (lastResult) {
-                tts.speak(lastResult);
+          <View style={styles.resultButtonsRow}>
+            <TouchableOpacity
+              style={styles.playButton}
+              onPress={async () => {
+                if (!lastResult) {
+                  tts.speak('No result to play');
+                  return;
+                }
+                if (lastResult.audio_url) {
+                  try {
+                    const { sound } = await Audio.Sound.createAsync({ uri: lastResult.audio_url });
+                    await sound.playAsync();
+                  } catch (e) {
+                    console.warn('play audio failed', e);
+                    tts.speak(lastResult.label || lastResult.word || 'identified');
+                  }
+                } else {
+                  tts.speak(lastResult.label || lastResult.word || 'identified');
+                }
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              } else {
-                tts.speak('No previous result to repeat');
-              }
-            }}
-            accessible={true}
-            accessibilityRole="button"
-            accessibilityLabel="Repeat last result"
-          >
-            <Text style={styles.repeatText}>Repeat</Text>
-          </TouchableOpacity>
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Play pronunciation"
+            >
+              <Text style={styles.playText}>Play</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.repeatButton}
+              onPress={() => {
+                if (lastResult) {
+                  const text = lastResult.label || lastResult.word || String(lastResult);
+                  tts.speak(text);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                } else {
+                  tts.speak('No previous result to repeat');
+                }
+              }}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Repeat last result"
+            >
+              <Text style={styles.repeatText}>Repeat</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -226,48 +233,54 @@ export default function CameraScreen({ onClose }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: theme.colors.background },
   camera: { flex: 1 },
-  header: { backgroundColor: '#0a84ff', paddingTop: 36, paddingBottom: 10, paddingHorizontal: 12 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  headerRow: { position: 'absolute', right: 12, top: 36, flexDirection: 'row' },
-  headerButton: { marginLeft: 8, padding: 6, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 6 },
-  headerButtonText: { color: '#fff' },
-  instructions: { color: '#ddd', marginBottom: 8 },
+  header: { backgroundColor: theme.colors.primary, paddingTop: 32, paddingBottom: 10, paddingHorizontal: 12 },
+  headerTitle: { color: theme.colors.text, fontSize: 18, fontWeight: '700' },
+  headerRow: { position: 'absolute', right: 12, top: 32, flexDirection: 'row' },
+  headerButton: { marginLeft: 8, padding: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6 },
+  headerButtonText: { color: theme.colors.text },
+  instructions: { color: theme.colors.muted, marginBottom: theme.spacing(1) },
   controls: {
-    padding: 20,
-    backgroundColor: '#111',
+    padding: theme.spacing(2),
+    backgroundColor: theme.colors.surface,
     alignItems: 'center',
   },
   captureButton: {
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: '#0a84ff',
+    backgroundColor: theme.colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
   },
-  captureText: { color: '#fff', fontSize: 22, fontWeight: '600' },
+  captureText: { color: theme.colors.text, fontSize: 22, fontWeight: '600' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
-  white: { color: '#fff' },
+  centerDark: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.background },
+  white: { color: theme.colors.text },
   resultBox: { padding: 10, marginTop: 6 },
-  resultText: { color: '#fff' },
+  resultText: { color: theme.colors.text },
   resultRow: { flexDirection: 'row', alignItems: 'center' },
+  resultRowColumn: { width: '100%', alignItems: 'center' },
+  largeResult: { padding: theme.spacing(2), marginTop: theme.spacing(1.5), backgroundColor: theme.colors.surface, borderRadius: 8, minWidth: '60%', alignItems: 'center' },
+  largeResultText: { color: theme.colors.text, fontSize: 28, fontWeight: '700' },
+  resultButtonsRow: { flexDirection: 'row', marginTop: theme.spacing(1), alignItems: 'center' },
+  playButton: { marginRight: 12, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: theme.colors.primary, borderRadius: 8 },
+  playText: { color: theme.colors.text, fontWeight: '700' },
   repeatButton: {
     marginLeft: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#222',
+    backgroundColor: theme.colors.surface,
     borderRadius: 8,
   },
-  repeatText: { color: '#fff' },
-  modalContainer: { flex: 1, padding: 20, backgroundColor: '#111' },
-  modalTitle: { color: '#fff', fontSize: 20, marginBottom: 12 },
-  modalLabel: { color: '#ccc', marginTop: 8 },
-  input: { backgroundColor: '#222', color: '#fff', padding: 10, marginTop: 6, borderRadius: 6 },
-  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 },
-  modalButton: { marginLeft: 12, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#0a84ff', borderRadius: 6 },
-  modalButtonText: { color: '#fff' },
+  repeatText: { color: theme.colors.text },
+  modalContainer: { flex: 1, padding: theme.spacing(2), backgroundColor: theme.colors.surface },
+  modalTitle: { color: theme.colors.text, fontSize: 20, marginBottom: theme.spacing(1) },
+  modalLabel: { color: theme.colors.muted, marginTop: theme.spacing(1) },
+  input: { backgroundColor: theme.colors.surface, color: theme.colors.text, padding: 10, marginTop: 6, borderRadius: 6 },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: theme.spacing(2) },
+  modalButton: { marginLeft: 12, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: theme.colors.primary, borderRadius: 6 },
+  modalButtonText: { color: theme.colors.text },
 });
