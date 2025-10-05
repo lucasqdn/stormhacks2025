@@ -17,7 +17,7 @@ export default function CameraScreen() {
   const [lastResult, setLastResult] = useState(null); // { word/label, translation?, audio_url? }
   const [capturedUri, setCapturedUri] = useState(null);
   const [settingsVisible, setSettingsVisible] = useState(false);
-  const [endpointInput, setEndpointInput] = useState(api.getEndpoint());
+  const [endpointInput, setEndpointInput] = useState(api.getProcessEndpoint());
   const [targetLang, setTargetLang] = useState('ko'); // <- language to request from backend
   const [langPickerVisible, setLangPickerVisible] = useState(false);
 
@@ -87,7 +87,7 @@ export default function CameraScreen() {
   };
 
   const openSettings = () => {
-    setEndpointInput(api.getEndpoint());
+  setEndpointInput(api.getProcessEndpoint());
     setSettingsVisible(true);
   };
 
@@ -96,7 +96,7 @@ export default function CameraScreen() {
       // basic sanity; allow http/https
       const url = new URL(endpointInput);
       if (!/^https?:$/.test(url.protocol)) throw new Error('Only http or https is allowed.');
-      api.setEndpoint(endpointInput);
+  api.setProcessEndpoint(endpointInput);
       setSettingsVisible(false);
       tts.speak('Settings saved.');
     } catch (e) {
@@ -234,7 +234,7 @@ export default function CameraScreen() {
                 </TouchableOpacity>
               </View>
             )}
-            <Text style={styles.modalLabel}>ML Endpoint URL</Text>
+            <Text style={styles.modalLabel}>Process Endpoint URL (/process-image)</Text>
             <TextInput
               style={styles.input}
               value={endpointInput}

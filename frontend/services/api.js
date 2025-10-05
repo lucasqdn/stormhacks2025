@@ -1,10 +1,9 @@
 import axios from 'axios';
 
-// Default ML endpoint (can be overridden at runtime)
-// Use your machine IP so devices can reach the backend. Change if different.
-let ML_ENDPOINT = 'http://172.16.164.208:8000/identify';
-let PROCESS_ENDPOINT = 'http://172.16.164.208:8000/process-image';
-// let BARCODE_ENDPOINT = 'http://localhost:5000/barcode';
+// Default endpoints point to your Render deployment
+let ML_ENDPOINT = 'https://stormhacks2025.onrender.com/identify';
+let PROCESS_ENDPOINT = 'https://stormhacks2025.onrender.com/process-image';
+let BARCODE_ENDPOINT = 'https://stormhacks2025.onrender.com/barcode';
 
 const client = axios.create({
   timeout: 15000,
