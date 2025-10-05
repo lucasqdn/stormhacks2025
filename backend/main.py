@@ -7,6 +7,7 @@ from googletrans import Translator
 from model.yolov8 import detect_object
 from pydantic import BaseModel
 
+# Update
 app = FastAPI()
 logger = logging.getLogger("uvicorn")
 VERSION = "2025-10-05a"
