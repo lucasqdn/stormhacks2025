@@ -337,16 +337,6 @@ export default function CameraScreen() {
               </View>
             )}
 
-            <Text style={styles.modalLabel}>Process Endpoint URL (/process-image)</Text>
-            <TextInput
-              style={styles.input}
-              value={endpointInput}
-              onChangeText={setEndpointInput}
-              autoCapitalize="none"
-              keyboardType="url"
-              placeholder="http://192.168.x.x:8000"
-              placeholderTextColor="#aaa"
-            />
 
             <View style={styles.modalButtonsRow}>
               <TouchableOpacity style={styles.glassPill} onPress={() => { setSettingsVisible(false); setLangPickerVisible(false); }}>

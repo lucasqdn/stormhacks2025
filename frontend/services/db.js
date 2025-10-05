@@ -104,14 +104,31 @@ async function init() {
 }
 
 async function addWord(word, translation = null, language = 'default') {
+  // Normalize for comparison
+  const normalized = typeof word === 'string' ? word.trim() : word;
+
   if (useSQLite) {
+    // Check duplicate
     return new Promise((resolve, reject) => {
       sqliteDb.transaction((tx) => {
         tx.executeSql(
-          'INSERT INTO words (word, translation, language) values (?, ?, ?);',
-          [word, translation, language],
-          (_, result) => resolve(result.insertId),
-          (_, err) => { console.warn('insert err', err); reject(err); return false; }
+          'SELECT id FROM words WHERE word = ? AND language = ? LIMIT 1;',
+          [normalized, language],
+          (_, { rows }) => {
+            const existing = rows && rows._array && rows._array[0];
+            if (existing && existing.id) {
+              resolve(existing.id);
+              return;
+            }
+            // insert
+            tx.executeSql(
+              'INSERT INTO words (word, translation, language) values (?, ?, ?);',
+              [normalized, translation, language],
+              (_, result) => resolve(result.insertId),
+              (_, err) => { console.warn('insert err', err); reject(err); return false; }
+            );
+          },
+          (_, err) => { console.warn('select err', err); reject(err); return false; }
         );
       }, reject);
     });
@@ -121,15 +138,19 @@ async function addWord(word, translation = null, language = 'default') {
     if (useAsyncStorage) {
       const raw = await AsyncStorage.getItem(AS_KEY);
       const arr = raw ? JSON.parse(raw) : [];
+      const found = arr.find((r) => (r.language || 'default') === (language || 'default') && (typeof r.word === 'string' ? r.word.trim() === normalized : r.word === normalized));
+      if (found && found.id) return found.id;
       const id = Date.now();
-      arr.unshift({ id, word, translation, language, created_at: new Date().toISOString() });
+      arr.unshift({ id, word: normalized, translation, language, created_at: new Date().toISOString() });
       await AsyncStorage.setItem(AS_KEY, JSON.stringify(arr));
       return id;
     }
 
     // memory fallback
+    const found = memoryStore.find((r) => (r.language || 'default') === (language || 'default') && (typeof r.word === 'string' ? r.word.trim() === normalized : r.word === normalized));
+    if (found && found.id) return found.id;
     const id = Date.now();
-    memoryStore.unshift({ id, word, translation, language, created_at: new Date().toISOString() });
+    memoryStore.unshift({ id, word: normalized, translation, language, created_at: new Date().toISOString() });
     return id;
   } catch (e) {
     console.warn('async addWord err', e);
