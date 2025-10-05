@@ -181,7 +181,7 @@ export default function CameraScreen() {
       {/* Top bar */}
       <Animated.View style={[styles.topOverlay, { transform: [{ translateY: topBarY }], opacity: topBarOpacity }]} pointerEvents="box-none">
         <BlurView intensity={40} tint={Platform.OS === 'ios' ? 'systemUltraThinMaterialDark' : 'dark'} style={styles.glassBar}>
-          <Text style={styles.brand}>LingoLens</Text>
+          <Text style={styles.brand}>EyeLingo</Text>
           <View style={styles.topActions}>
             <TouchableOpacity onPress={() => tts.speak('Tap the shutter to capture and translate.')} style={styles.glassPill}>
               <Text style={styles.pillText}>Help</Text>
