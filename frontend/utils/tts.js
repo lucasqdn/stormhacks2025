@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Audio } from 'expo-av';
 import { Buffer } from 'buffer';
 
-const ELEVEN_LABS_API_KEY = 'sk_57a1fae55d1d2869126a250c3daeac4a3dcc45ca3f7c21a6'; // Replace with your API key
+const ELEVEN_LABS_API_KEY = 'sk_d980be769fde246147691208968da0d79f8adc4971b7d490'; // Replace with your API key
 const ELEVEN_LABS_API_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
 const VOICE_ID = 'pqHfZKP75CvOlQylNhV4'; // Replace with the desired voice ID from ElevenLabs
 
